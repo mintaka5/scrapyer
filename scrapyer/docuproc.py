@@ -1,3 +1,4 @@
+import os.path
 from pathlib import Path
 
 from bs4 import BeautifulSoup
@@ -14,16 +15,30 @@ class DocumentProcessor:
         self.dom: BeautifulSoup = BeautifulSoup(response.read(), 'html.parser')
         self.pop_sources()
         self.store_sources()
+        self.js_path: Path = self.save_path.joinpath("js")
+        self.css_path: Path = self.save_path.joinpath("css")
+        self.create_paths()
 
-    def store_sources(self):
+    def create_paths(self) -> None:
+        if not self.save_path.exists():
+            self.save_path.mkdir(exist_ok=True, parents=True)
+
+        if not self.js_path.exists():
+            self.js_path.mkdir(exist_ok=True)
+
+        if not self.css_path.exists():
+            self.css_path.mkdir(exist_ok=True)
+
+    def store_sources(self) -> None:
         if len(self.sources) > 0:
             for s in self.sources:
                 self.store_url(s)
 
-    def store_url(self, s: str):
+    def store_url(self, s: str) -> None:
         req = HttpRequest(s)
         res = req.get()
-        print(f"status: {res.status} >> {s}")
+        # content = res.read()
+        # @todo figure out how to map script file to paths
 
     def pop_sources(self):
         script_tags = self.dom.find_all('script')
