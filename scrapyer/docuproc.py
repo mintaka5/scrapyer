@@ -13,6 +13,17 @@ class DocumentProcessor:
         response = self.request.get()
         self.dom: BeautifulSoup = BeautifulSoup(response.read(), 'html.parser')
         self.pop_sources()
+        self.store_sources()
+
+    def store_sources(self):
+        if len(self.sources) > 0:
+            for s in self.sources:
+                self.store_url(s)
+
+    def store_url(self, s: str):
+        req = HttpRequest(s)
+        res = req.get()
+        print(f"status: {res.status} >> {s}")
 
     def pop_sources(self):
         script_tags = self.dom.find_all('script')
