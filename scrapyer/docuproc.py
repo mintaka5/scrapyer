@@ -1,4 +1,3 @@
-import os.path
 from pathlib import Path
 
 from bs4 import BeautifulSoup
@@ -14,31 +13,25 @@ class DocumentProcessor:
         response = self.request.get()
         self.dom: BeautifulSoup = BeautifulSoup(response.read(), 'html.parser')
         self.pop_sources()
-        self.store_sources()
-        self.js_path: Path = self.save_path.joinpath("js")
-        self.css_path: Path = self.save_path.joinpath("css")
+
         self.create_paths()
 
     def create_paths(self) -> None:
         if not self.save_path.exists():
             self.save_path.mkdir(exist_ok=True, parents=True)
 
-        if not self.js_path.exists():
-            self.js_path.mkdir(exist_ok=True)
-
-        if not self.css_path.exists():
-            self.css_path.mkdir(exist_ok=True)
-
-    def store_sources(self) -> None:
-        if len(self.sources) > 0:
-            for s in self.sources:
-                self.store_url(s)
-
     def store_url(self, s: str) -> None:
         req = HttpRequest(s)
         res = req.get()
-        # content = res.read()
-        # @todo figure out how to map script file to paths
+
+        if res.status != 404:
+            # content = res.read()
+            # @todo figure out how to map script file to paths
+            local_path = Path(req.url.path[1:])
+            if local_path.suffix != "":
+                print(Path(req.url.path[1:]))
+
+
 
     def pop_sources(self):
         script_tags = self.dom.find_all('script')
@@ -47,7 +40,7 @@ class DocumentProcessor:
         for st in script_tags:
             try:
                 js = self.request.absolute_source(st['src'])
-                self.sources.append(js)
+                self.store_url(js)
             except KeyError as e:
                 # src attribute was never found in script tags
                 pass
@@ -56,7 +49,7 @@ class DocumentProcessor:
             try:
                 ss_index = lt['rel'].index('stylesheet')
                 lh = self.request.absolute_source(lt['href'])
-                self.sources.append(lh)
+                self.store_url(lh)
             except ValueError as e:
                 # stylesheet was never found in rel attribute list
                 pass
