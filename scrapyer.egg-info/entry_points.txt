@@ -1,0 +1,3 @@
+[console_scripts]
+scrapyer = scrapyer.main:boot_up
+
