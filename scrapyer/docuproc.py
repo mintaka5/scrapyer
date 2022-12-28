@@ -25,12 +25,18 @@ class DocumentProcessor:
         res = req.get()
 
         if res.status != 404:
-            # content = res.read()
-            # @todo figure out how to map script file to paths
+            content = res.read()
+
             local_path = Path(req.url.path[1:])
             if local_path.suffix != "":
-                print(Path(req.url.path[1:]))
-
+                local_path = self.save_path.joinpath(Path(req.url.path[1:]))
+                if not local_path.exists():
+                    try:
+                        local_path.parent.mkdir(parents=True)
+                        print(f"writing: {local_path}")
+                        local_path.write_bytes(content)
+                    except FileExistsError as e:
+                        pass
 
 
     def pop_sources(self):
