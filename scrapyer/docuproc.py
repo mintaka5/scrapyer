@@ -25,7 +25,7 @@ class DocumentProcessor:
     def store_url(self, s: str, parent_dirname = None) -> None:
         req = HttpRequest(s)
         res = req.get()
-        print(f"status: {res.status}")
+        # print(f"status: {res.status}")
 
         if res.status != 404:
             content = res.read()
@@ -48,6 +48,8 @@ class DocumentProcessor:
     def pop_sources(self):
         script_tags = self.dom.find_all('script')
         link_tags = self.dom.find_all('link')
+        style_tags = self.dom.find_all('style')
+        [print(str(x)) for x in style_tags]
 
         '''
         @todo find inline style and script tags, 
@@ -55,7 +57,12 @@ class DocumentProcessor:
         '''
 
         for st in script_tags:
+            if 'src' not in st.attrs:
+                # no `src` attribute, so it's an inline script
+                pass
+
             try:
+                # `src` attribute present so get javascript file content of URL
                 js = self.request.absolute_source(st['src'])
 
                 self.store_url(js, parent_dirname='js')
@@ -65,6 +72,7 @@ class DocumentProcessor:
 
         for lt in link_tags:
             try:
+                # `rel` is a stylesheet so grab `href` URL's CSS file
                 ss_index = lt['rel'].index('stylesheet')
                 lh = self.request.absolute_source(lt['href'])
                 self.store_url(lh, parent_dirname='css')
