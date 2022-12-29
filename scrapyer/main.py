@@ -1,4 +1,6 @@
 import sys
+from binascii import crc32
+from datetime import datetime
 from pathlib import Path, PurePath
 
 from scrapyer.docuproc import DocumentProcessor
@@ -15,7 +17,8 @@ def boot_up():
 
         request = HttpRequest(url)
         request.add_header("Accept", "*/*")
-        request.add_header("User-Agent", "special-agent-browser/1.0")
+        rand_hash = hex(crc32(datetime.now().isoformat().encode('utf8')))[2:]
+        request.add_header("User-Agent", f"special-agent-{rand_hash}-browser/1.0")
 
         '''
         process content
