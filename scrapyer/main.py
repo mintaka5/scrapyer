@@ -1,7 +1,7 @@
 import sys
 from binascii import crc32
 from datetime import datetime
-from pathlib import Path, PurePath
+from pathlib import Path
 
 from scrapyer.docuproc import DocumentProcessor
 from scrapyer.httprequest import HttpRequest
@@ -16,13 +16,11 @@ def boot_up():
         print(f"Save path: {save_path}")
 
         request = HttpRequest(url)
-        request.add_header("Accept", "*/*")
-        rand_hash = hex(crc32(datetime.now().isoformat().encode('utf8')))[2:]
-        request.add_header("User-Agent", f"special-agent-{rand_hash}-browser/1.0")
 
         '''
         process content
         '''
         doc = DocumentProcessor(request, save_path)
+        doc.start()
     except IndexError as e:
         print("1st and 2nd arguments required (e.g. scrapyer <url> <save path>)")
