@@ -1,5 +1,3 @@
-import os
-import re
 from pathlib import Path
 from time import sleep
 
@@ -32,7 +30,7 @@ class DocumentProcessor:
                 print(f"status: {response.status} {response.reason}")
 
                 # save source files to storage directory
-                # self.pop_sources()
+                self.pop_sources()
             except TimeoutError as e:
                 sleep(self.request.timeout)
                 continue
@@ -55,7 +53,7 @@ class DocumentProcessor:
         html_file = self.save_path.joinpath('index.html')
         contents = html_file.read_bytes()
         html_text = contents.decode('utf8')
-        html_dom = BeautifulSoup(html_text, 'html.parser')
+        # html_dom = BeautifulSoup(html_text, 'html.parser')
         for p in self.save_path.rglob('*.*'):
             if p.suffix != '.html':
                 rel_path = p.relative_to(self.save_path)

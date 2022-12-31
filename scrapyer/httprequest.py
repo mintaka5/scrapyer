@@ -98,7 +98,7 @@ class HttpRequest:
         if p.startswith("/"):
             # root path
             r = self.get_root_url() + p
-        elif re.match('^https?\://', p):
+        elif re.match('^https?://', p):
             r = p
         else:
             # relative path

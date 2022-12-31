@@ -1,6 +1,4 @@
 import sys
-from binascii import crc32
-from datetime import datetime
 from pathlib import Path
 
 from scrapyer.docuproc import DocumentProcessor
