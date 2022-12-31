@@ -1,3 +1,5 @@
+import os
+import re
 from pathlib import Path
 from time import sleep
 
@@ -30,14 +32,16 @@ class DocumentProcessor:
                 print(f"status: {response.status} {response.reason}")
 
                 # save source files to storage directory
-                self.pop_sources()
-
-                self.is_processing = False
+                # self.pop_sources()
             except TimeoutError as e:
                 sleep(self.request.timeout)
                 continue
 
             self.save_html()
+
+            self.is_processing = False
+
+            [self.store_url(source) for source in self.sources]
 
     def save_html(self):
         # @todo store content in index.html file
@@ -45,15 +49,30 @@ class DocumentProcessor:
         if not html_file.exists():
             html_file.write_bytes(self.dom.prettify('utf8'))
 
+        self.localize_html()
+
+    def localize_html(self):
+        html_file = self.save_path.joinpath('index.html')
+        contents = html_file.read_bytes()
+        html_text = contents.decode('utf8')
+        html_dom = BeautifulSoup(html_text, 'html.parser')
+        for p in self.save_path.rglob('*.*'):
+            if p.suffix != '.html':
+                rel_path = p.relative_to(self.save_path)
+                # result = html_text.find(str(rel_path).replace("\\", "/"))
+                rel_urlized = rel_path.as_posix()
+                # @todo: swap rel local path with html content's URL
+
     def create_paths(self) -> None:
         if not self.save_path.exists():
             self.save_path.mkdir(exist_ok=True, parents=True)
 
-    def store_url(self, s: str, parent_dirname = None) -> None:
-        req = HttpRequest(s, time_out=self.request.timeout)
+    def store_url(self, s: DocumentSource, parent_dirname = None) -> None:
+        req = HttpRequest(s.url, time_out=self.request.timeout)
         res = req.get()
 
         # don't bother with 404s
+        # print(f"status: {res.status} url: {s.url}")
         if res.status != 404:
             content = res.read()
 
@@ -61,15 +80,17 @@ class DocumentProcessor:
             if parent_dirname is not None:
                 local_path = Path(parent_dirname, req.url.path[1:])
 
+            # has to have a file extension
             if local_path.suffix != "":
                 local_path = self.save_path.joinpath(local_path)
                 if not local_path.exists():
                     try:
                         local_path.parent.mkdir(parents=True)
-                        print(f"writing: {local_path}")
-                        local_path.write_bytes(content)
                     except FileExistsError as e:
                         pass
+                # store the files
+                print(f"stored: {local_path}")
+                local_path.write_bytes(content)
 
 
     def pop_sources(self):
@@ -108,5 +129,3 @@ class DocumentProcessor:
                 # self.store_url(lh, parent_dirname='css')
             except ValueError as e:
                 pass
-
-        [print(source) for source in self.sources]
