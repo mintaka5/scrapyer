@@ -1,3 +1,5 @@
+import re
+import socket
 from pathlib import Path
 from time import sleep
 
@@ -31,18 +33,17 @@ class DocumentProcessor:
 
                 # save source files to storage directory
                 self.pop_sources()
-            except TimeoutError as e:
+            except TimeoutError | socket.gaierror as e:
                 sleep(self.request.timeout)
                 continue
 
-            self.save_html()
-
             self.is_processing = False
 
-            [self.store_url(source) for source in self.sources]
+        [self.store_url(source) for source in self.sources]
+
+        self.save_html()
 
     def save_html(self):
-        # @todo store content in index.html file
         html_file = self.save_path.joinpath('index.html')
         if not html_file.exists():
             html_file.write_bytes(self.dom.prettify('utf8'))
@@ -53,13 +54,23 @@ class DocumentProcessor:
         html_file = self.save_path.joinpath('index.html')
         contents = html_file.read_bytes()
         html_text = contents.decode('utf8')
-        # html_dom = BeautifulSoup(html_text, 'html.parser')
+
+        # iterate thru all saved source files
         for p in self.save_path.rglob('*.*'):
             if p.suffix != '.html':
                 rel_path = p.relative_to(self.save_path)
-                # result = html_text.find(str(rel_path).replace("\\", "/"))
+                # make slashes web friendly
                 rel_urlized = rel_path.as_posix()
-                # @todo: swap rel local path with html content's URL
+
+                for found in  re.finditer(r"<.*=\"(.*%s)\".*>$" % re.escape(rel_urlized), html_text, re.M):
+                    orig = found.group(1)
+                    html_text = re.sub(re.escape(orig), rel_urlized, html_text)
+        # make content text to bytes
+        revised = html_text.encode('utf8')
+        # remove old file
+        html_file.unlink()
+        html_file.write_bytes(revised)
+        print("finalized document (index.html)")
 
     def create_paths(self) -> None:
         if not self.save_path.exists():
