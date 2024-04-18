@@ -1,8 +1,8 @@
-import random
+import secrets
 import re
 import socket
 from http.client import HTTPSConnection, HTTPConnection, HTTPResponse
-from urllib.parse import urlparse, ParseResult
+from urllib.parse import urlparse, ParseResult, quote_plus
 
 REQUEST_USER_AGENTS = [
     'Mozilla/5.0 (iPhone; CPU iPhone OS 12_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.1 Mobile/15E148 Safari/604.1',
@@ -13,12 +13,20 @@ REQUEST_USER_AGENTS = [
     'SpecialAgent/13.0 (NSA 66.6 Linux) Magickal/3.14 (KHTML, like Gecko) Version/13.0.0'
 ]
 
+class HttpProps:
+    SCHEME = 'http'
+    PORT = 80
+
+class HttpsProps:
+    SCHEME = 'https'
+    PORT = 443
+
 class HttpRequest:
     def __init__(self, url: str, time_out: int = 10):
         self.url: ParseResult = None
         self.timeout: int = time_out
         self.connection: HTTPConnection | HTTPSConnection = None
-        self.port: int = 80
+        self.port: int = HttpProps.PORT
         self.parse(url)
         self.body: str = None
         self.headers: dict = {}
@@ -31,15 +39,15 @@ class HttpRequest:
         self.set_connection()
 
     def determine_port(self) -> None:
-        if self.url.scheme == 'https':
-            self.port = 443
+        if self.url.scheme == HttpsProps.SCHEME:
+            self.port = HttpsProps.PORT
         else:
-            self.port = 80
+            self.port = HttpProps.PORT
 
     def set_connection(self) -> None:
         host_name = socket.gethostbyname(socket.gethostname())
 
-        if self.port == 443:
+        if self.port == HttpsProps.PORT:
             self.connection = HTTPSConnection(self.url.netloc, timeout=self.timeout)
         else:
             self.connection = HTTPConnection(self.url.netloc, timeout=self.timeout)
@@ -48,13 +56,15 @@ class HttpRequest:
         self.headers[n] = v
 
     def get(self) -> HTTPResponse:
-        random_ua: str = random.choice(REQUEST_USER_AGENTS)
+        random_ua: str = secrets.choice(REQUEST_USER_AGENTS)
 
         # randomize the User-Agent name
-        # rand_hash = hex(crc32(datetime.now().isoformat().encode('utf8')))[2:]
-        # self.add_header('User-Agent',f"special-agent-{rand_hash}-browser/2.0")
+        '''
+        rand_hash = hex(crc32(datetime.now().isoformat().encode('utf8')))[2:]
+        self.add_header('User-Agent',f"special-agent-{rand_hash}-browser/2.0")
 
-        # self.add_header('Host', random_host)
+        self.add_header('Host', random_host)
+        '''
         self.add_header('User-Agent', random_ua)
         self.add_header('Cache-Control', 'no-cache, no-store, must-revalidate')
         self.add_header('Pragma', 'no-cache')
@@ -63,8 +73,8 @@ class HttpRequest:
         self.add_header('Accept-Language', '*/*')
         self.add_header('Accept-Encoding', '*/*')
         self.add_header('Connection', 'keep-alive')
-
-        self.connection.request("GET", self.url.path, body=self.body, headers=self.headers)
+        
+        self.connection.request("GET", self.build_url_path(), body=self.body, headers=self.headers)
 
         return self.connection.getresponse()
 
@@ -85,12 +95,22 @@ class HttpRequest:
                 p += f":{self.url.params}"
 
             if self.url.query != "":
-                p += f"?{self.url.query}"
+                # break it apart
+                '''
+                because this is an untreated string for URLs
+                we need to walk through items of query, and urlencode
+                each value
+                '''
+                p += "?" + re.sub(r"([^=]+)(=([^&#]*))?", self.safe_queryize, self.url.query)
 
             if self.url.fragment != "":
                 p += f"#{self.url.fragment}"
 
         return p
+
+    def safe_queryize(self, m):
+        if m.group() is not None:
+            return m.group(1) + '=' + quote_plus(m.group(3))
 
     def absolute_source(self, p: str) -> str:
         r = ""
@@ -98,7 +118,7 @@ class HttpRequest:
         if p.startswith("/"):
             # root path
             r = self.get_root_url() + p
-        elif re.match('^https?://', p):
+        elif re.match(r'^https?://', p):
             r = p
         else:
             # relative path
