@@ -127,11 +127,7 @@ class HttpRequest:
         return r
 
     def get_relative_url(self):
-        u = self.get_root_url() + self.build_url_path(path_only=True)
-
-        return u
+        return self.get_root_url() + self.build_url_path(path_only=True)
 
     def get_root_url(self) -> str:
-        u = self.url.scheme + "://" + self.url.netloc
-
-        return u
+        return self.url.scheme + "://" + self.url.netloc
