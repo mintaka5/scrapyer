@@ -13,6 +13,13 @@ REQUEST_USER_AGENTS = [
     'SpecialAgent/13.0 (NSA 66.6 Linux) Magickal/3.14 (KHTML, like Gecko) Version/13.0.0'
 ]
 
+def safe_queryize(m):
+    """
+    safely encode query string values
+    """
+    if m.group() is not None:
+        return m.group(1) + '=' + quote_plus(m.group(3))
+
 class HttpProps:
     SCHEME = 'http'
     PORT = 80
@@ -101,16 +108,12 @@ class HttpRequest:
                 we need to walk through items of query, and urlencode
                 each value
                 '''
-                p += "?" + re.sub(r"([^=]+)(=([^&#]*))?", self.safe_queryize, self.url.query)
+                p += "?" + re.sub(r"([^=]+)(=([^&#]*))?", safe_queryize, self.url.query)
 
             if self.url.fragment != "":
                 p += f"#{self.url.fragment}"
 
         return p
-
-    def safe_queryize(self, m):
-        if m.group() is not None:
-            return m.group(1) + '=' + quote_plus(m.group(3))
 
     def absolute_source(self, p: str) -> str:
         r = ""
